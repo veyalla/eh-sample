@@ -1,40 +1,49 @@
-namespace event_hub;
 
 using System.Text;
-using System.Threading.Tasks;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Processor;
 using Azure.Storage.Blobs;
 using Azure.Messaging.WebPubSub;
+using Newtonsoft.Json;
+using Azure.Messaging.EventHubs.Producer;
 
+namespace event_hub;
 public class StreamProcessor : BackgroundService
 {
-    private readonly ILogger<StreamProcessor> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly ILogger<StreamProcessor> _logger;  
     private readonly WebPubSubServiceClient _serviceClient;
     private readonly bool _isPubSub = false;
     private readonly string _podName;
+    private readonly EventProcessorClient processor;
+    private readonly EventHubBufferedProducerClient producer; 
 
     public StreamProcessor(IConfiguration configuration, ILogger<StreamProcessor> logger)
     {
-        _configuration = configuration;
         _logger = logger;
-        var webPubSubConnectionString = _configuration.GetValue<string>("WEBPUBSUB_CONNECTION_STRING");
+        var webPubSubConnectionString = configuration.GetValue<string>("WEBPUBSUB_CONNECTION_STRING");
         if(!string.IsNullOrEmpty(webPubSubConnectionString))
         {
             _serviceClient = new WebPubSubServiceClient(webPubSubConnectionString, "stream");
             _isPubSub = true;
         }
-        _podName = _configuration.GetValue<string>("CONTAINER_APP_REVISION");
+        _podName = configuration.GetValue<string>("CONTAINER_APP_REVISION");
+
+        var storageClient = new BlobContainerClient(configuration.GetValue<string>("STORAGE_CONNECTION_STRING"), configuration.GetValue<string>("STORAGE_BLOB_NAME"));
+        this.processor = new EventProcessorClient(storageClient, configuration.GetValue<string>("EVENTHUB_D2C_CONSUMER_GROUP"), configuration.GetValue<string>("EVENTHUB_D2C_CONNECTION_STRING"), configuration.GetValue<string>("EVENTHUB_D2C_NAME"));
+
+        string producerEventHub = configuration.GetValue<string>("EVENTHUB_C2D_NAME");
+        string producerEventHubCS = configuration.GetValue<string>("EVENTHUB_C2D_CONNECTION_STRING");
+
+        this.producer = new EventHubBufferedProducerClient(producerEventHubCS, producerEventHub);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var storageClient = new BlobContainerClient(_configuration.GetValue<string>("STORAGE_CONNECTION_STRING"), _configuration.GetValue<string>("STORAGE_BLOB_NAME"));
-        var processor = new EventProcessorClient(storageClient, _configuration.GetValue<string>("EVENTHUB_D2C_CONSUMER_GROUP"), _configuration.GetValue<string>("EVENTHUB_D2C_CONNECTION_STRING"), _configuration.GetValue<string>("EVENTHUB_D2C_NAME"));
+        this.processor.ProcessEventAsync += ProcessEventHandler;
+        this.processor.ProcessErrorAsync += ProcessErrorHandler;
 
-        processor.ProcessEventAsync += ProcessEventHandler;
-        processor.ProcessErrorAsync += ProcessErrorHandler;
+        this.producer.SendEventBatchSucceededAsync += SendBatchSucceeded;
+        this.producer.SendEventBatchFailedAsync += SendBatchFailed;
 
         // Start the processing
         await processor.StartProcessingAsync();
@@ -47,7 +56,7 @@ public class StreamProcessor : BackgroundService
             {
                 _serviceClient.SendToAll(message);
             }
-            await Task.Delay(10000, stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
         }
 
         _logger.LogInformation("Closing message pump");
@@ -59,6 +68,28 @@ public class StreamProcessor : BackgroundService
         _logger.LogInformation("Message pump closed : {Time}", DateTimeOffset.UtcNow);
     }
 
+    private Task SendBatchFailed(SendEventBatchFailedEventArgs arg)
+    {
+        string logMsg = $"Failed to publish events to EventHub because of error: {arg.Exception.Message}";
+        _logger.LogError(logMsg);
+        if (_isPubSub)
+        {
+            _serviceClient.SendToAll(logMsg);
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task SendBatchSucceeded(SendEventBatchSucceededEventArgs arg)
+    {
+        string logMsg = $"Published {arg.EventBatch.Count} events to EventHub";
+        _logger.LogInformation(logMsg);
+        if (_isPubSub)
+        {
+            _serviceClient.SendToAll(logMsg);
+        }
+        return Task.CompletedTask;
+    }
+
     private Task ProcessErrorHandler(ProcessErrorEventArgs arg)
     {
         throw new NotImplementedException();
@@ -66,12 +97,39 @@ public class StreamProcessor : BackgroundService
 
     private async Task ProcessEventHandler(ProcessEventArgs eventArgs)
     {
-        var message = $"{_podName}: Received Event Hub message {Encoding.UTF8.GetString(eventArgs.Data.EventBody.ToArray())}";
-        _logger.LogInformation(message);
+        string msgData = Encoding.UTF8.GetString(eventArgs.Data.EventBody.ToArray());
+        var logMessage = $"{_podName}: Received Event Hub message {msgData}";
+        _logger.LogInformation(logMessage);
         if(_isPubSub)
         {
-            _serviceClient.SendToAll(message);
+            _serviceClient.SendToAll(logMessage);
         }
         await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
+
+        string replyMessage = ProcessInputMessage(msgData);
+        if (!string.IsNullOrWhiteSpace(replyMessage))
+        {
+            await this.producer.EnqueueEventAsync(new EventData(replyMessage));
+        }
+    }
+
+    string ProcessInputMessage(string msgString)
+    {
+        ArgumentNullException.ThrowIfNull(msgString);           
+        dynamic? parsedJson = JsonConvert.DeserializeObject(msgString);
+        string? itemVal = parsedJson?.data?.item;
+
+        if (!string.IsNullOrWhiteSpace(itemVal))
+        {
+            Dictionary<string, object> responseMessage = new Dictionary<string, object>()
+            {
+                ["item"] = itemVal,
+                ["processed-by"] = this._podName
+            };
+            string responseMessageString = JsonConvert.SerializeObject(responseMessage);
+            return responseMessageString;
+        }
+
+        return string.Empty;
     }
 }
