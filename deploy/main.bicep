@@ -11,14 +11,15 @@ param eventHubC2DConsumerGroup string = 'aca-c2d'
 param storageAccountName string = 'stor${uniqueString(resourceGroup().id)}'
 
 // Container Apps settings
-param eventHubImage string = 'veyalla/eh-test:0.0.1'
+param eventHubImage string = 'veyalla/eh-test:0.0.2'
 param registry string = 'docker.io'
 param registryUsername string = ''
 @secure()
 param registryPassword string = ''
 
 
-var eventHubConnectionSecretName = 'event-hub-connection-string'
+var eventHubD2CConnectionSecretName = 'event-hub-d2c-connection-string'
+var eventHubC2DConnectionSecretName = 'event-hub-c2d-connection-string'
 var storageConnectionSecretName = 'storage-connection-string'
 var registryPasswordPropertyName = 'registry-password'
 var storageLeaseBlobName = 'aca-leases'
@@ -59,7 +60,11 @@ resource ehContainerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
           value: registryPassword
         }
         {
-          name: eventHubConnectionSecretName
+          name: eventHubC2DConnectionSecretName
+          value: eventHub.outputs.eventHubC2DConnectionString
+        }
+        {
+          name: eventHubD2CConnectionSecretName
           value: eventHub.outputs.eventHubD2CConnectionString
         }
         {
@@ -82,8 +87,12 @@ resource ehContainerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
           name: 'event-hub-app'
           env: [
             {
+              name: 'EVENTHUB_C2D_CONNECTION_STRING'
+              secretRef: eventHubC2DConnectionSecretName
+            }
+            {
               name: 'EVENTHUB_D2C_CONNECTION_STRING'
-              secretRef: eventHubConnectionSecretName
+              secretRef: eventHubD2CConnectionSecretName
             }
             {
               name: 'EVENTHUB_D2C_NAME'
