@@ -5,13 +5,25 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "5689571428204293787"
+      "templateHash": "16646888481395875633"
     }
   },
   "parameters": {
     "location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]"
+    },
+    "registry": {
+      "type": "string",
+      "defaultValue": "docker.io"
+    },
+    "registryUsername": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "registryPassword": {
+      "type": "secureString",
+      "defaultValue": ""
     },
     "environmentName": {
       "type": "string",
@@ -44,18 +56,6 @@
     "eventHubImage": {
       "type": "string",
       "defaultValue": "veyalla/eh-test:0.0.2"
-    },
-    "registry": {
-      "type": "string",
-      "defaultValue": "docker.io"
-    },
-    "registryUsername": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "registryPassword": {
-      "type": "secureString",
-      "defaultValue": ""
     }
   },
   "variables": {

@@ -1,6 +1,9 @@
 param location string = resourceGroup().location
+param registry string = 'docker.io'
+param registryUsername string = ''
+@secure()
+param registryPassword string = ''
 param environmentName string = 'e4k-cloud-edge-sample-${uniqueString(resourceGroup().id)}'
-
 
 // Event Hub settings
 param eventHubNamespace string = 'eh-${uniqueString(resourceGroup().id)}'
@@ -12,10 +15,7 @@ param storageAccountName string = 'stor${uniqueString(resourceGroup().id)}'
 
 // Container Apps settings
 param eventHubImage string = 'veyalla/eh-test:0.0.2'
-param registry string = 'docker.io'
-param registryUsername string = ''
-@secure()
-param registryPassword string = ''
+
 
 
 var eventHubD2CConnectionSecretName = 'event-hub-d2c-connection-string'
