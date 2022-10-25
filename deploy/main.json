@@ -5,18 +5,10 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "16646888481395875633"
+      "templateHash": "3260840666459617041"
     }
   },
   "parameters": {
-    "location": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]"
-    },
-    "registry": {
-      "type": "string",
-      "defaultValue": "docker.io"
-    },
     "registryUsername": {
       "type": "string",
       "defaultValue": ""
@@ -24,6 +16,14 @@
     "registryPassword": {
       "type": "secureString",
       "defaultValue": ""
+    },
+    "registry": {
+      "type": "string",
+      "defaultValue": "docker.io"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
     },
     "environmentName": {
       "type": "string",

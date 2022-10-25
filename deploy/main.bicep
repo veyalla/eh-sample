@@ -1,10 +1,9 @@
-param location string = resourceGroup().location
-param registry string = 'docker.io'
 param registryUsername string = ''
 @secure()
 param registryPassword string = ''
+param registry string = 'docker.io'
+param location string = resourceGroup().location
 param environmentName string = 'e4k-cloud-edge-sample-${uniqueString(resourceGroup().id)}'
-
 // Event Hub settings
 param eventHubNamespace string = 'eh-${uniqueString(resourceGroup().id)}'
 param eventHubD2CName string = 'e4k-d2c'
