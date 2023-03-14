@@ -20,7 +20,7 @@ param eventHubImage string = 'veyalla/eh-test:0.0.2'
 var eventHubD2CConnectionSecretName = 'event-hub-d2c-connection-string'
 var eventHubC2DConnectionSecretName = 'event-hub-c2d-connection-string'
 var storageConnectionSecretName = 'storage-connection-string'
-var registryPasswordPropertyName = ''
+var registryPasswordPropertyName = 'unusedP@ssw0rd'
 var storageLeaseBlobName = 'aca-leases'
 
 // Container Apps Environment (environment.bicep)
