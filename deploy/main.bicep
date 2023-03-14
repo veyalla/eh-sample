@@ -1,4 +1,3 @@
-@secure()
 param location string = resourceGroup().location
 param environmentName string = 'e4k-cloud-edge-sample-${uniqueString(resourceGroup().id)}'
 // Event Hub settings
