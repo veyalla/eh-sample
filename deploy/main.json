@@ -5,24 +5,12 @@
     "_generator": {
       "name": "bicep",
       "version": "0.15.31.15270",
-      "templateHash": "1879190675578591691"
+      "templateHash": "1272339688358250515"
     }
   },
   "parameters": {
-    "registryUsername": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "registryPassword": {
-      "type": "securestring",
-      "defaultValue": ""
-    },
-    "registry": {
-      "type": "string",
-      "defaultValue": "docker.io"
-    },
     "location": {
-      "type": "string",
+      "type": "securestring",
       "defaultValue": "[resourceGroup().location]"
     },
     "environmentName": {
@@ -62,7 +50,6 @@
     "eventHubD2CConnectionSecretName": "event-hub-d2c-connection-string",
     "eventHubC2DConnectionSecretName": "event-hub-c2d-connection-string",
     "storageConnectionSecretName": "storage-connection-string",
-    "registryPasswordPropertyName": "registry-password",
     "storageLeaseBlobName": "aca-leases"
   },
   "resources": [
@@ -77,10 +64,6 @@
           "activeRevisionsMode": "single",
           "secrets": [
             {
-              "name": "[variables('registryPasswordPropertyName')]",
-              "value": ""
-            },
-            {
               "name": "[variables('eventHubC2DConnectionSecretName')]",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub'), '2020-10-01').outputs.eventHubC2DConnectionString.value]"
             },
@@ -91,13 +74,6 @@
             {
               "name": "[variables('storageConnectionSecretName')]",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub'), '2020-10-01').outputs.storageConnectionString.value]"
-            }
-          ],
-          "registries": [
-            {
-              "server": "[parameters('registry')]",
-              "username": "[parameters('registryUsername')]",
-              "passwordSecretRef": "[variables('registryPasswordPropertyName')]"
             }
           ]
         },
