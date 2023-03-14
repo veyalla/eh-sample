@@ -1,7 +1,3 @@
-param registryUsername string = ''
-@secure()
-param registryPassword string = ''
-param registry string = 'docker.io'
 param location string = resourceGroup().location
 param environmentName string = 'e4k-cloud-edge-sample-${uniqueString(resourceGroup().id)}'
 // Event Hub settings
@@ -20,7 +16,6 @@ param eventHubImage string = 'veyalla/eh-test:0.0.2'
 var eventHubD2CConnectionSecretName = 'event-hub-d2c-connection-string'
 var eventHubC2DConnectionSecretName = 'event-hub-c2d-connection-string'
 var storageConnectionSecretName = 'storage-connection-string'
-var registryPasswordPropertyName = 'registry-password'
 var storageLeaseBlobName = 'aca-leases'
 
 // Container Apps Environment (environment.bicep)
@@ -55,10 +50,6 @@ resource ehContainerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
       activeRevisionsMode: 'single'
       secrets: [
         {
-          name: registryPasswordPropertyName
-          value: registryPassword
-        }
-        {
           name: eventHubC2DConnectionSecretName
           value: eventHub.outputs.eventHubC2DConnectionString
         }
@@ -69,13 +60,6 @@ resource ehContainerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
         {
           name: storageConnectionSecretName
           value: eventHub.outputs.storageConnectionString
-        }
-      ]
-      registries: [
-        {
-          server: registry
-          username: registryUsername
-          passwordSecretRef: registryPasswordPropertyName
         }
       ]
     }

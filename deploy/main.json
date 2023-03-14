@@ -4,23 +4,11 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.11.1.770",
-      "templateHash": "3260840666459617041"
+      "version": "0.15.31.15270",
+      "templateHash": "13170206322370209448"
     }
   },
   "parameters": {
-    "registryUsername": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "registryPassword": {
-      "type": "secureString",
-      "defaultValue": ""
-    },
-    "registry": {
-      "type": "string",
-      "defaultValue": "docker.io"
-    },
     "location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]"
@@ -62,7 +50,6 @@
     "eventHubD2CConnectionSecretName": "event-hub-d2c-connection-string",
     "eventHubC2DConnectionSecretName": "event-hub-c2d-connection-string",
     "storageConnectionSecretName": "storage-connection-string",
-    "registryPasswordPropertyName": "registry-password",
     "storageLeaseBlobName": "aca-leases"
   },
   "resources": [
@@ -72,32 +59,21 @@
       "name": "event-hub-app",
       "location": "[parameters('location')]",
       "properties": {
-        "managedEnvironmentId": "[reference(resourceId('Microsoft.Resources/deployments', 'container-app-environment')).outputs.environmentId.value]",
+        "managedEnvironmentId": "[reference(resourceId('Microsoft.Resources/deployments', 'container-app-environment'), '2020-10-01').outputs.environmentId.value]",
         "configuration": {
           "activeRevisionsMode": "single",
           "secrets": [
             {
-              "name": "[variables('registryPasswordPropertyName')]",
-              "value": "[parameters('registryPassword')]"
-            },
-            {
               "name": "[variables('eventHubC2DConnectionSecretName')]",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub')).outputs.eventHubC2DConnectionString.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub'), '2020-10-01').outputs.eventHubC2DConnectionString.value]"
             },
             {
               "name": "[variables('eventHubD2CConnectionSecretName')]",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub')).outputs.eventHubD2CConnectionString.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub'), '2020-10-01').outputs.eventHubD2CConnectionString.value]"
             },
             {
               "name": "[variables('storageConnectionSecretName')]",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub')).outputs.storageConnectionString.value]"
-            }
-          ],
-          "registries": [
-            {
-              "server": "[parameters('registry')]",
-              "username": "[parameters('registryUsername')]",
-              "passwordSecretRef": "[variables('registryPasswordPropertyName')]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub'), '2020-10-01').outputs.storageConnectionString.value]"
             }
           ]
         },
@@ -176,8 +152,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "16096661043271246547"
+              "version": "0.15.31.15270",
+              "templateHash": "16401168368372634820"
             }
           },
           "parameters": {
@@ -217,7 +193,7 @@
                 "appLogsConfiguration": {
                   "destination": "log-analytics",
                   "logAnalyticsConfiguration": {
-                    "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))).customerId]",
+                    "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2020-03-01-preview').customerId]",
                     "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2020-03-01-preview').primarySharedKey]"
                   }
                 }
@@ -274,8 +250,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "15342224943417374893"
+              "version": "0.15.31.15270",
+              "templateHash": "6766648524618403233"
             }
           },
           "parameters": {
