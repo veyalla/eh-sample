@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.15.31.15270",
-      "templateHash": "8101155315109020593"
+      "templateHash": "1879190675578591691"
     }
   },
   "parameters": {
@@ -62,7 +62,7 @@
     "eventHubD2CConnectionSecretName": "event-hub-d2c-connection-string",
     "eventHubC2DConnectionSecretName": "event-hub-c2d-connection-string",
     "storageConnectionSecretName": "storage-connection-string",
-    "registryPasswordPropertyName": "unusedP@ssw0rd",
+    "registryPasswordPropertyName": "registry-password",
     "storageLeaseBlobName": "aca-leases"
   },
   "resources": [
@@ -78,7 +78,7 @@
           "secrets": [
             {
               "name": "[variables('registryPasswordPropertyName')]",
-              "value": "[parameters('registryPassword')]"
+              "value": ""
             },
             {
               "name": "[variables('eventHubC2DConnectionSecretName')]",

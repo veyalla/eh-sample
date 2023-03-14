@@ -20,7 +20,7 @@ param eventHubImage string = 'veyalla/eh-test:0.0.2'
 var eventHubD2CConnectionSecretName = 'event-hub-d2c-connection-string'
 var eventHubC2DConnectionSecretName = 'event-hub-c2d-connection-string'
 var storageConnectionSecretName = 'storage-connection-string'
-var registryPasswordPropertyName = 'unusedP@ssw0rd'
+var registryPasswordPropertyName = 'registry-password'
 var storageLeaseBlobName = 'aca-leases'
 
 // Container Apps Environment (environment.bicep)
@@ -56,7 +56,7 @@ resource ehContainerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
       secrets: [
         {
           name: registryPasswordPropertyName
-          value: registryPassword
+          value: ''
         }
         {
           name: eventHubC2DConnectionSecretName
