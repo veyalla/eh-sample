@@ -66,6 +66,7 @@ module eventHub 'eventhub.bicep' = {
     consumerGroupC2DName: eventHubC2DConsumerGroup
     storageAccountName: storageAccountName
     storageLeaseBlobName: storageLeaseBlobName
+    location: location
   }
 }
 

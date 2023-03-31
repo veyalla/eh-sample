@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.15.31.15270",
-      "templateHash": "17300156326309731751"
+      "templateHash": "1582849684851123580"
     }
   },
   "parameters": {
@@ -266,6 +266,9 @@
           },
           "storageLeaseBlobName": {
             "value": "[variables('storageLeaseBlobName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
           }
         },
         "template": {
