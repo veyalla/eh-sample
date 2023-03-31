@@ -1,4 +1,32 @@
-param location string = resourceGroup().location
+
+
+
+@allowed([
+  'eastasia'
+  'australiaeast'
+  'brazilsouth'
+  'canadacentral'
+  'northeurope'
+  'westeurope'
+  'francecentral'
+  'germanywestcentral'
+  'japaneast'
+  'koreacentral'
+  'norwayeast'
+  'uksouth'
+  'centralus'
+  'eastus'
+  'eastus2'
+  'northcentralus'
+  'southcentralus'
+  'westus'
+  'westus3'
+])
+@description('Location for cloud resources')
+param location string = 'westus3'
+
+
+
 param environmentName string = 'e4k-cloud-edge-sample-${uniqueString(resourceGroup().id)}'
 // Event Hub settings
 param eventHubNamespace string = 'eh-${uniqueString(resourceGroup().id)}'
@@ -38,6 +66,7 @@ module eventHub 'eventhub.bicep' = {
     consumerGroupC2DName: eventHubC2DConsumerGroup
     storageAccountName: storageAccountName
     storageLeaseBlobName: storageLeaseBlobName
+    location: location
   }
 }
 

@@ -5,13 +5,37 @@
     "_generator": {
       "name": "bicep",
       "version": "0.15.31.15270",
-      "templateHash": "13170206322370209448"
+      "templateHash": "1582849684851123580"
     }
   },
   "parameters": {
     "location": {
       "type": "string",
-      "defaultValue": "[resourceGroup().location]"
+      "defaultValue": "westus3",
+      "metadata": {
+        "description": "Location for cloud resources"
+      },
+      "allowedValues": [
+        "eastasia",
+        "australiaeast",
+        "brazilsouth",
+        "canadacentral",
+        "northeurope",
+        "westeurope",
+        "francecentral",
+        "germanywestcentral",
+        "japaneast",
+        "koreacentral",
+        "norwayeast",
+        "uksouth",
+        "centralus",
+        "eastus",
+        "eastus2",
+        "northcentralus",
+        "southcentralus",
+        "westus",
+        "westus3"
+      ]
     },
     "environmentName": {
       "type": "string",
@@ -242,6 +266,9 @@
           },
           "storageLeaseBlobName": {
             "value": "[variables('storageLeaseBlobName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
           }
         },
         "template": {
