@@ -5,13 +5,16 @@
     "_generator": {
       "name": "bicep",
       "version": "0.15.31.15270",
-      "templateHash": "4996571520676723687"
+      "templateHash": "17300156326309731751"
     }
   },
   "parameters": {
     "location": {
       "type": "string",
       "defaultValue": "westus3",
+      "metadata": {
+        "description": "Location for cloud resources"
+      },
       "allowedValues": [
         "eastasia",
         "australiaeast",

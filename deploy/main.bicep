@@ -22,7 +22,10 @@
   'westus'
   'westus3'
 ])
+@description('Location for cloud resources')
 param location string = 'westus3'
+
+
 
 param environmentName string = 'e4k-cloud-edge-sample-${uniqueString(resourceGroup().id)}'
 // Event Hub settings
