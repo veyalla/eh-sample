@@ -70,7 +70,7 @@ module eventHub 'eventhub.bicep' = {
   }
 }
 
-resource ehContainerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
+resource ehContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'event-hub-app'
   location: location
   properties: {
