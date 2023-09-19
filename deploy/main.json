@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.15.31.15270",
-      "templateHash": "7125025714955774700"
+      "templateHash": "6366995156566371222"
     }
   },
   "parameters": {
@@ -79,7 +79,7 @@
   "resources": [
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2022-01-01-preview",
+      "apiVersion": "2023-05-01",
       "name": "event-hub-app",
       "location": "[parameters('location')]",
       "properties": {
