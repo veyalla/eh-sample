@@ -38,10 +38,6 @@ param storageAccountName string = 'stor${uniqueString(resourceGroup().id)}'
 
 param eventHubImage string = 'veyalla/eh-test:0.0.2'
 param eventHubSku string = 'Standard'
-param consumerGroupD2CName string
-param consumerGroupC2DName string
-
-
 param storageLeaseBlobName string = 'aca-leases'
 
 var eventHubD2CConnectionSecretName = 'event-hub-d2c-connection-string'
@@ -112,12 +108,12 @@ resource eventHubC2D 'Microsoft.EventHub/namespaces/eventhubs@2017-04-01' = {
 }
 
 resource consumerGroupD2C 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2017-04-01' = {
-  name: '${eventHubD2C.name}/${consumerGroupD2CName}'
+  name: '${eventHubD2C.name}/${eventHubD2CConsumerGroup}'
   properties: {}
 }
 
 resource consumerGroupC2D 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2017-04-01' = {
-  name: '${eventHubC2D.name}/${consumerGroupC2DName}'
+  name: '${eventHubC2D.name}/${eventHubC2DConsumerGroup}'
   properties: {}
 }
 
@@ -139,21 +135,6 @@ resource container 'Microsoft.Storage/storageAccounts/blobServices/containers@20
     }
 }
 
-
-
-module eventHub 'eventhub.bicep' = {
-  name: 'eventhub'
-  params: {
-    eventHubNamespaceName: eventHubNamespaceName
-    eventHubD2CName: eventHubD2CName
-    eventHubC2DName: eventHubC2DName
-    consumerGroupD2CName: eventHubD2CConsumerGroup
-    consumerGroupC2DName: eventHubC2DConsumerGroup
-    storageAccountName: storageAccountName
-    storageLeaseBlobName: storageLeaseBlobName
-    location: location
-  }
-}
 
 resource ehContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'event-hub-app'

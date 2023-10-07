@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "8168842778361982793"
+      "templateHash": "16880530002567020835"
     }
   },
   "parameters": {
@@ -72,12 +72,6 @@
     "eventHubSku": {
       "type": "string",
       "defaultValue": "Standard"
-    },
-    "consumerGroupD2CName": {
-      "type": "string"
-    },
-    "consumerGroupC2DName": {
-      "type": "string"
     },
     "storageLeaseBlobName": {
       "type": "string",
@@ -173,7 +167,7 @@
     {
       "type": "Microsoft.EventHub/namespaces/eventhubs/consumergroups",
       "apiVersion": "2017-04-01",
-      "name": "[format('{0}/{1}', format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), parameters('consumerGroupD2CName'))]",
+      "name": "[format('{0}/{1}', format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), parameters('eventHubD2CConsumerGroup'))]",
       "properties": {},
       "dependsOn": [
         "[resourceId('Microsoft.EventHub/namespaces/eventhubs', split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), '/')[0], split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), '/')[1])]"
@@ -182,7 +176,7 @@
     {
       "type": "Microsoft.EventHub/namespaces/eventhubs/consumergroups",
       "apiVersion": "2017-04-01",
-      "name": "[format('{0}/{1}', format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), parameters('consumerGroupC2DName'))]",
+      "name": "[format('{0}/{1}', format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), parameters('eventHubC2DConsumerGroup'))]",
       "properties": {},
       "dependsOn": [
         "[resourceId('Microsoft.EventHub/namespaces/eventhubs', split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), '/')[0], split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), '/')[1])]"
@@ -288,187 +282,6 @@
         "[resourceId('Microsoft.App/managedEnvironments', parameters('environmentName'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
       ]
-    },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
-      "name": "eventhub",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "eventHubNamespaceName": {
-            "value": "[parameters('eventHubNamespaceName')]"
-          },
-          "eventHubD2CName": {
-            "value": "[parameters('eventHubD2CName')]"
-          },
-          "eventHubC2DName": {
-            "value": "[parameters('eventHubC2DName')]"
-          },
-          "consumerGroupD2CName": {
-            "value": "[parameters('eventHubD2CConsumerGroup')]"
-          },
-          "consumerGroupC2DName": {
-            "value": "[parameters('eventHubC2DConsumerGroup')]"
-          },
-          "storageAccountName": {
-            "value": "[parameters('storageAccountName')]"
-          },
-          "storageLeaseBlobName": {
-            "value": "[parameters('storageLeaseBlobName')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.22.6.54827",
-              "templateHash": "18398690806161522352"
-            }
-          },
-          "parameters": {
-            "location": {
-              "type": "string",
-              "defaultValue": "[resourceGroup().location]"
-            },
-            "eventHubSku": {
-              "type": "string",
-              "defaultValue": "Standard"
-            },
-            "eventHubNamespaceName": {
-              "type": "string"
-            },
-            "eventHubD2CName": {
-              "type": "string"
-            },
-            "eventHubC2DName": {
-              "type": "string"
-            },
-            "consumerGroupD2CName": {
-              "type": "string"
-            },
-            "consumerGroupC2DName": {
-              "type": "string"
-            },
-            "storageAccountName": {
-              "type": "string"
-            },
-            "storageLeaseBlobName": {
-              "type": "string",
-              "defaultValue": "aca-leases"
-            }
-          },
-          "variables": {
-            "endpoint": "[format('{0}/AuthorizationRules/RootManageSharedAccessKey', resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespaceName')))]"
-          },
-          "resources": [
-            {
-              "type": "Microsoft.EventHub/namespaces",
-              "apiVersion": "2018-01-01-preview",
-              "name": "[parameters('eventHubNamespaceName')]",
-              "location": "[parameters('location')]",
-              "sku": {
-                "name": "[parameters('eventHubSku')]",
-                "tier": "[parameters('eventHubSku')]",
-                "capacity": 1
-              },
-              "properties": {
-                "isAutoInflateEnabled": false,
-                "maximumThroughputUnits": 0
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', split(format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageLeaseBlobName')), '/')[0], split(format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageLeaseBlobName')), '/')[1], split(format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageLeaseBlobName')), '/')[2])]"
-              ]
-            },
-            {
-              "type": "Microsoft.EventHub/namespaces/eventhubs",
-              "apiVersion": "2017-04-01",
-              "name": "[format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName'))]",
-              "properties": {
-                "messageRetentionInDays": 7,
-                "partitionCount": 1
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespaceName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.EventHub/namespaces/eventhubs",
-              "apiVersion": "2017-04-01",
-              "name": "[format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName'))]",
-              "properties": {
-                "messageRetentionInDays": 7,
-                "partitionCount": 1
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespaceName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.EventHub/namespaces/eventhubs/consumergroups",
-              "apiVersion": "2017-04-01",
-              "name": "[format('{0}/{1}', format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), parameters('consumerGroupD2CName'))]",
-              "properties": {},
-              "dependsOn": [
-                "[resourceId('Microsoft.EventHub/namespaces/eventhubs', split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), '/')[0], split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), '/')[1])]"
-              ]
-            },
-            {
-              "type": "Microsoft.EventHub/namespaces/eventhubs/consumergroups",
-              "apiVersion": "2017-04-01",
-              "name": "[format('{0}/{1}', format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), parameters('consumerGroupC2DName'))]",
-              "properties": {},
-              "dependsOn": [
-                "[resourceId('Microsoft.EventHub/namespaces/eventhubs', split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), '/')[0], split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), '/')[1])]"
-              ]
-            },
-            {
-              "type": "Microsoft.Storage/storageAccounts",
-              "apiVersion": "2019-06-01",
-              "name": "[parameters('storageAccountName')]",
-              "location": "[parameters('location')]",
-              "sku": {
-                "name": "Standard_LRS"
-              },
-              "kind": "StorageV2"
-            },
-            {
-              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
-              "apiVersion": "2022-05-01",
-              "name": "[format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageLeaseBlobName'))]",
-              "properties": {
-                "publicAccess": "None",
-                "metadata": {}
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
-              ]
-            }
-          ],
-          "outputs": {
-            "eventHubD2CConnectionString": {
-              "type": "string",
-              "value": "[format('{0};EntityPath={1}', listKeys(variables('endpoint'), '2017-04-01').primaryConnectionString, parameters('eventHubD2CName'))]"
-            },
-            "eventHubC2DConnectionString": {
-              "type": "string",
-              "value": "[format('{0};EntityPath={1}', listKeys(variables('endpoint'), '2017-04-01').primaryConnectionString, parameters('eventHubC2DName'))]"
-            },
-            "storageConnectionString": {
-              "type": "string",
-              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', parameters('storageAccountName'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2019-06-01').keys[0].value)]"
-            }
-          }
-        }
-      }
     }
   ]
 }
