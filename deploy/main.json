@@ -4,17 +4,14 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.15.31.15270",
-      "templateHash": "6366995156566371222"
+      "version": "0.22.6.54827",
+      "templateHash": "8168842778361982793"
     }
   },
   "parameters": {
     "location": {
       "type": "string",
       "defaultValue": "westus3",
-      "metadata": {
-        "description": "Location for cloud resources"
-      },
       "allowedValues": [
         "eastasia",
         "australiaeast",
@@ -35,13 +32,16 @@
         "southcentralus",
         "westus",
         "westus3"
-      ]
+      ],
+      "metadata": {
+        "description": "Location for cloud resources"
+      }
     },
     "environmentName": {
       "type": "string",
       "defaultValue": "[format('e4k-cloud-edge-sample-{0}', uniqueString(resourceGroup().id))]"
     },
-    "eventHubNamespace": {
+    "eventHubNamespaceName": {
       "type": "string",
       "defaultValue": "[format('eh-{0}', uniqueString(resourceGroup().id))]"
     },
@@ -68,36 +68,169 @@
     "eventHubImage": {
       "type": "string",
       "defaultValue": "veyalla/eh-test:0.0.2"
+    },
+    "eventHubSku": {
+      "type": "string",
+      "defaultValue": "Standard"
+    },
+    "consumerGroupD2CName": {
+      "type": "string"
+    },
+    "consumerGroupC2DName": {
+      "type": "string"
+    },
+    "storageLeaseBlobName": {
+      "type": "string",
+      "defaultValue": "aca-leases"
+    },
+    "logAnalyticsWorkspaceName": {
+      "type": "string",
+      "defaultValue": "[format('logs-{0}', parameters('environmentName'))]"
     }
   },
   "variables": {
+    "endpoint": "[format('{0}/AuthorizationRules/RootManageSharedAccessKey', resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespaceName')))]",
     "eventHubD2CConnectionSecretName": "event-hub-d2c-connection-string",
     "eventHubC2DConnectionSecretName": "event-hub-c2d-connection-string",
-    "storageConnectionSecretName": "storage-connection-string",
-    "storageLeaseBlobName": "aca-leases"
+    "storageConnectionSecretName": "storage-connection-string"
   },
   "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2020-03-01-preview",
+      "name": "[parameters('logAnalyticsWorkspaceName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "retentionInDays": 30,
+        "features": {
+          "searchVersion": 1
+        },
+        "sku": {
+          "name": "PerGB2018"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('environmentName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2020-03-01-preview').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2020-03-01-preview').primarySharedKey]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.EventHub/namespaces",
+      "apiVersion": "2018-01-01-preview",
+      "name": "[parameters('eventHubNamespaceName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('eventHubSku')]",
+        "tier": "[parameters('eventHubSku')]",
+        "capacity": 1
+      },
+      "properties": {
+        "isAutoInflateEnabled": false,
+        "maximumThroughputUnits": 0
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', split(format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageLeaseBlobName')), '/')[0], split(format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageLeaseBlobName')), '/')[1], split(format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageLeaseBlobName')), '/')[2])]"
+      ]
+    },
+    {
+      "type": "Microsoft.EventHub/namespaces/eventhubs",
+      "apiVersion": "2017-04-01",
+      "name": "[format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName'))]",
+      "properties": {
+        "messageRetentionInDays": 7,
+        "partitionCount": 1
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.EventHub/namespaces/eventhubs",
+      "apiVersion": "2017-04-01",
+      "name": "[format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName'))]",
+      "properties": {
+        "messageRetentionInDays": 7,
+        "partitionCount": 1
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.EventHub/namespaces/eventhubs/consumergroups",
+      "apiVersion": "2017-04-01",
+      "name": "[format('{0}/{1}', format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), parameters('consumerGroupD2CName'))]",
+      "properties": {},
+      "dependsOn": [
+        "[resourceId('Microsoft.EventHub/namespaces/eventhubs', split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), '/')[0], split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), '/')[1])]"
+      ]
+    },
+    {
+      "type": "Microsoft.EventHub/namespaces/eventhubs/consumergroups",
+      "apiVersion": "2017-04-01",
+      "name": "[format('{0}/{1}', format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), parameters('consumerGroupC2DName'))]",
+      "properties": {},
+      "dependsOn": [
+        "[resourceId('Microsoft.EventHub/namespaces/eventhubs', split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), '/')[0], split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), '/')[1])]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2019-06-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2"
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2022-05-01",
+      "name": "[format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageLeaseBlobName'))]",
+      "properties": {
+        "publicAccess": "None",
+        "metadata": {}
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ]
+    },
     {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2023-05-01",
       "name": "event-hub-app",
       "location": "[parameters('location')]",
       "properties": {
-        "managedEnvironmentId": "[reference(resourceId('Microsoft.Resources/deployments', 'container-app-environment'), '2020-10-01').outputs.environmentId.value]",
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('environmentName'))]",
         "configuration": {
           "activeRevisionsMode": "single",
           "secrets": [
             {
               "name": "[variables('eventHubC2DConnectionSecretName')]",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub'), '2020-10-01').outputs.eventHubC2DConnectionString.value]"
+              "value": "[format('{0};EntityPath={1}', listKeys(variables('endpoint'), '2017-04-01').primaryConnectionString, parameters('eventHubC2DName'))]"
             },
             {
               "name": "[variables('eventHubD2CConnectionSecretName')]",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub'), '2020-10-01').outputs.eventHubD2CConnectionString.value]"
+              "value": "[format('{0};EntityPath={1}', listKeys(variables('endpoint'), '2017-04-01').primaryConnectionString, parameters('eventHubD2CName'))]"
             },
             {
               "name": "[variables('storageConnectionSecretName')]",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'eventhub'), '2020-10-01').outputs.storageConnectionString.value]"
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', parameters('storageAccountName'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2019-06-01').keys[0].value)]"
             }
           ]
         },
@@ -137,7 +270,7 @@
                 },
                 {
                   "name": "STORAGE_BLOB_NAME",
-                  "value": "[variables('storageLeaseBlobName')]"
+                  "value": "[parameters('storageLeaseBlobName')]"
                 }
               ]
             }
@@ -149,96 +282,16 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'container-app-environment')]",
-        "[resourceId('Microsoft.Resources/deployments', 'eventhub')]"
+        "[resourceId('Microsoft.EventHub/namespaces/eventhubs', split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), '/')[0], split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubC2DName')), '/')[1])]",
+        "[resourceId('Microsoft.EventHub/namespaces/eventhubs', split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), '/')[0], split(format('{0}/{1}', parameters('eventHubNamespaceName'), parameters('eventHubD2CName')), '/')[1])]",
+        "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespaceName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', parameters('environmentName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
-      "name": "container-app-environment",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "environmentName": {
-            "value": "[parameters('environmentName')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.15.31.15270",
-              "templateHash": "2895653328444140855"
-            }
-          },
-          "parameters": {
-            "location": {
-              "type": "string"
-            },
-            "environmentName": {
-              "type": "string"
-            },
-            "logAnalyticsWorkspaceName": {
-              "type": "string",
-              "defaultValue": "[format('logs-{0}', parameters('environmentName'))]"
-            }
-          },
-          "resources": [
-            {
-              "type": "Microsoft.OperationalInsights/workspaces",
-              "apiVersion": "2020-03-01-preview",
-              "name": "[parameters('logAnalyticsWorkspaceName')]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "retentionInDays": 30,
-                "features": {
-                  "searchVersion": 1
-                },
-                "sku": {
-                  "name": "PerGB2018"
-                }
-              }
-            },
-            {
-              "type": "Microsoft.App/managedEnvironments",
-              "apiVersion": "2023-05-01",
-              "name": "[parameters('environmentName')]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "appLogsConfiguration": {
-                  "destination": "log-analytics",
-                  "logAnalyticsConfiguration": {
-                    "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2020-03-01-preview').customerId]",
-                    "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2020-03-01-preview').primarySharedKey]"
-                  }
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
-              ]
-            }
-          ],
-          "outputs": {
-            "environmentId": {
-              "type": "string",
-              "value": "[resourceId('Microsoft.App/managedEnvironments', parameters('environmentName'))]"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
       "name": "eventhub",
       "properties": {
         "expressionEvaluationOptions": {
@@ -247,7 +300,7 @@
         "mode": "Incremental",
         "parameters": {
           "eventHubNamespaceName": {
-            "value": "[parameters('eventHubNamespace')]"
+            "value": "[parameters('eventHubNamespaceName')]"
           },
           "eventHubD2CName": {
             "value": "[parameters('eventHubD2CName')]"
@@ -265,7 +318,7 @@
             "value": "[parameters('storageAccountName')]"
           },
           "storageLeaseBlobName": {
-            "value": "[variables('storageLeaseBlobName')]"
+            "value": "[parameters('storageLeaseBlobName')]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -277,8 +330,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.15.31.15270",
-              "templateHash": "6766648524618403233"
+              "version": "0.22.6.54827",
+              "templateHash": "18398690806161522352"
             }
           },
           "parameters": {

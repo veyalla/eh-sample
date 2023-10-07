@@ -1,6 +1,4 @@
 
-
-
 @allowed([
   'eastasia'
   'australiaeast'
@@ -25,41 +23,128 @@
 @description('Location for cloud resources')
 param location string = 'westus3'
 
+var endpoint = '${eventHubNamespace.id}/AuthorizationRules/RootManageSharedAccessKey'
+
 
 
 param environmentName string = 'e4k-cloud-edge-sample-${uniqueString(resourceGroup().id)}'
 // Event Hub settings
-param eventHubNamespace string = 'eh-${uniqueString(resourceGroup().id)}'
+param eventHubNamespaceName string = 'eh-${uniqueString(resourceGroup().id)}'
 param eventHubD2CName string = 'e4k-d2c'
 param eventHubC2DName string = 'e4k-c2d'
 param eventHubD2CConsumerGroup string = 'aca-d2c'
 param eventHubC2DConsumerGroup string = 'aca-c2d'
 param storageAccountName string = 'stor${uniqueString(resourceGroup().id)}'
 
-// Container Apps settings
 param eventHubImage string = 'veyalla/eh-test:0.0.2'
+param eventHubSku string = 'Standard'
+param consumerGroupD2CName string
+param consumerGroupC2DName string
 
 
+param storageLeaseBlobName string = 'aca-leases'
 
 var eventHubD2CConnectionSecretName = 'event-hub-d2c-connection-string'
 var eventHubC2DConnectionSecretName = 'event-hub-c2d-connection-string'
 var storageConnectionSecretName = 'storage-connection-string'
-var storageLeaseBlobName = 'aca-leases'
 
-// Container Apps Environment (environment.bicep)
-module environment 'environment.bicep' = {
-  name: 'container-app-environment'
-  params: {
-    environmentName: environmentName
-    location: location
+param logAnalyticsWorkspaceName string = 'logs-${environmentName}'
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-03-01-preview' = {
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: any({
+    retentionInDays: 30
+    features: {
+      searchVersion: 1
+    }
+    sku: {
+      name: 'PerGB2018'
+    }
+  })
+}
+
+resource managedEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
+  name: environmentName
+  location: location
+  properties: {
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalyticsWorkspace.properties.customerId
+        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+      }
+    }
   }
 }
+
+resource eventHubNamespace 'Microsoft.EventHub/namespaces@2018-01-01-preview' = {
+  dependsOn: [
+    container
+  ]
+  name: eventHubNamespaceName
+  location: location
+  sku: {
+    name: eventHubSku
+    tier: eventHubSku
+    capacity: 1
+  }
+  properties: {
+    isAutoInflateEnabled: false
+    maximumThroughputUnits: 0
+  }
+}
+
+resource eventHubD2C 'Microsoft.EventHub/namespaces/eventhubs@2017-04-01' = {
+  name: '${eventHubNamespace.name}/${eventHubD2CName}'
+  properties: {
+    messageRetentionInDays: 7
+    partitionCount: 1
+  }
+}
+
+resource eventHubC2D 'Microsoft.EventHub/namespaces/eventhubs@2017-04-01' = {
+  name: '${eventHubNamespace.name}/${eventHubC2DName}'
+  properties: {
+    messageRetentionInDays: 7
+    partitionCount: 1
+  }
+}
+
+resource consumerGroupD2C 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2017-04-01' = {
+  name: '${eventHubD2C.name}/${consumerGroupD2CName}'
+  properties: {}
+}
+
+resource consumerGroupC2D 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2017-04-01' = {
+  name: '${eventHubC2D.name}/${consumerGroupC2DName}'
+  properties: {}
+}
+
+// Storage Account for consumer leases
+resource storageAccount 'Microsoft.Storage/storageAccounts@2019-06-01' = {
+  name: storageAccountName
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+}
+
+resource container 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
+    name:  '${storageAccount.name}/default/${storageLeaseBlobName}'
+    properties: {
+      publicAccess: 'None'
+      metadata: {}
+    }
+}
+
 
 
 module eventHub 'eventhub.bicep' = {
   name: 'eventhub'
   params: {
-    eventHubNamespaceName: eventHubNamespace
+    eventHubNamespaceName: eventHubNamespaceName
     eventHubD2CName: eventHubD2CName
     eventHubC2DName: eventHubC2DName
     consumerGroupD2CName: eventHubD2CConsumerGroup
@@ -74,21 +159,21 @@ resource ehContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'event-hub-app'
   location: location
   properties: {
-    managedEnvironmentId: environment.outputs.environmentId
+    managedEnvironmentId:  managedEnv.id
     configuration: {
       activeRevisionsMode: 'single'
       secrets: [
         {
           name: eventHubC2DConnectionSecretName
-          value: eventHub.outputs.eventHubC2DConnectionString
+          value: '${listKeys(endpoint, eventHubC2D.apiVersion).primaryConnectionString};EntityPath=${eventHubC2DName}'
         }
         {
           name: eventHubD2CConnectionSecretName
-          value: eventHub.outputs.eventHubD2CConnectionString
+          value: '${listKeys(endpoint, eventHubD2C.apiVersion).primaryConnectionString};EntityPath=${eventHubD2CName}'
         }
         {
           name: storageConnectionSecretName
-          value: eventHub.outputs.storageConnectionString
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
         }
       ]
     }
