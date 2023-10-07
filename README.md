@@ -11,7 +11,7 @@
   az deployment group create -g $resourceGroup -f ./deploy/main.bicep 
   ```
   
-  [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fveyalla%2Feh-sample%2Fupdate-preview-api%2Fdeploy%2Fmain.json)
+  [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fveyalla%2Feh-sample%2Fsimplify%2Fdeploy%2Fmain.json)
 
 ### Acknowledgments
 Mostly lift and shift from https://github.com/jeffhollan/container-apps-dotnet-eventing
